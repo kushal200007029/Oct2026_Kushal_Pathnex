@@ -1,0 +1,5 @@
+# What i did today
+
+an hour coding practice
+an hour linux commands practice
+30 min git practice
