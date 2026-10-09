@@ -1,0 +1,99 @@
+Day 09 - Docker Integration with Jenkins and Gitlab
+# Ansible - Setup Docker Container for Nginx
+- name: Setup Docker Container for Nginx
+  host: all
+  become: yes
+  tasks:
+    - name: Pull Nginx image
+      docker_ image:
+        name: nginx
+        source: pull
+    - name: Run Nginx container
+      docker_container:
+        name: nginx-container
+        image: nginx
+        state: started
+        published_ports:
+            - "8080:80"
+
+            
+# Terraform - EC2 with Auto Scaling Group
+resource "aws_launch_configuration" "example" {
+    name = "example-config"
+    image_id = "ami-0abcd1234abcd1234"
+    instance_type = "t3.medium"
+}
+
+resource "aws_autoscaling_group" "example" {
+  desired_capacity      = 2
+  max_size              = 3
+  min_size              = 1
+  vpc_zone_identifier   = ["subnet-12345678"]
+  launch_configuration  = aws_launch_configuration
+}
+#Kubernetes - Horizontal Pod Autoscaler (HPA)
+apiVersion: app/v1
+kind: Deoplyment
+metadata:
+  name: pathnex-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pathnex-app
+    template:
+      matadata:
+        labels:
+            app: pathnex-app
+        spec:
+          containers:
+            - name: nginx
+              image: nginx
+              ports:
+                - containerPort: 80
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+    name:pathnex-hpa
+spec:
+ scaleTargetRef:
+    apiVersion: app/v2
+    kind: deployment
+    name: pathnex-deploument
+minReplicas: 1
+maxReplicas: 10
+targetCPUUtilizationPercentage: 50
+
+
+# Jenkinsfiel - Deploy to Kubernetes
+pipeline {
+    agent any
+    stages {
+        stage('deploy to kubernetes) {
+            step {
+                script {
+                    sh 'kubectl apply -f deployment.yaml'
+                }
+            }
+        }
+    }
+}
+# Gitlab CI/CD - Deployment to kubernetes
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  script:
+    - kubectl apply -f kubetnetes/deploymet.yaml
+
+
+# Docker
+# Environment Variables
+FROM ubuntu:22.04
+ENV INSTITUTE=PATHNEX
+ENV COURSE=DevOps
+CMD echo"$INSTITUTE - $ course"
