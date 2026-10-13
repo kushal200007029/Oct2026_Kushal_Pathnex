@@ -1,0 +1,7 @@
+# What i did today
+
+1 hour coding practice
+30 min git practice
+an hour learn Kubernetes
+30 min speeking practice
+30 min learn terraform
