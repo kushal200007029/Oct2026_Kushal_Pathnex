@@ -1,0 +1,132 @@
+# Day 25 - Continuous Monitoring and Alerts
+
+## # ansible - Setup Promotheus Node Exportr for Monitoring
+
+```yaml
+- name: Setup Promotheus Node Exporter
+  host: all
+  become: yes
+  tasks:
+    - name: Install Promotheus Node Exporter
+     yum:
+       name: promotheus-node-exporter
+       state: present
+    - name: start Promotheus Node Export service
+      service:
+        name: promotheus-node0export
+        state: started
+        enabled: yes
+
+
+
+# Terraform - Create CloudWatch alarms
+resource "aws_cloudwatch_metric_alarm" "pathnex_cpu_alarm" {
+  alarm_name            = "pathnex-cpu-utilization-high"
+  comparison_operator   = "GreaterThanThreshold"
+  evaluation_periods    = "1"
+  metric_name           = "CPUUtilization"
+  namespace             = "AWS/EC2"
+  period                = "60"
+  statestic             = "average"
+  threshold             = "80"
+
+  dimensions = {
+    InstanceId = aws_instance.pathnex_ec2.id
+}
+
+alarm_actions = [aws_sns_topic.pathnex_alarts.arn]
+}
+
+resource "aws_sns_topic" "pathnex_alerts" {
+  name = "pathnex-alarts"
+}
+
+
+
+# Kubernetes - Ser Up Promotheus and grafana
+apiVersion: app/v1
+kind: Deployment
+metadata:
+  name: promotheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promotheus
+  template:
+    metadata:
+      labels:
+        app: promotheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+---
+apiVersion: app/v1
+kind: Deployment
+metadata:
+  name: Grafana
+spec:
+  replicas: 1
+  selector:
+    metchLabels: 2
+      app: Grafana
+  template:
+    matadata:
+      labels:
+        app: Grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+
+
+
+# Jenkinsfile - Continuous Monitering and alert in CI pipeline
+pipeline {
+    agent any
+    stages {
+        stage('monitor') {
+            steps {
+                script {
+                    echo 'Triggering CloudWatch if CPU exceeds 80%'
+                    sh 'aws cloudwatch put-metric-data --namespace "AWS/EC2 --METRIC-NAME "CPUUtilization" --value 90'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+            }
+        }
+    }
+}
+
+
+
+ # GitLab CI/CD - Monitering and Alerting in CI/CD pipeline
+ stages:
+   - monitor
+   - Test
+
+monitor:
+  stage: monitor
+  script:
+    - aws cloudwatch put-metric-data --namespace "AWS/EC2" --metric-name "CPUUtilization" --value 90
+
+test:
+  stage: Test
+  script:
+    - echo "running tests..."
+
+
+
+# Docker
+# .docker ignore file
+node_modules
+.git
+temp
