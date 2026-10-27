@@ -1,78 +1,59 @@
-# Day 26 — Security Best Practices
+# # Day 27 — Serverless Scaling with Lambda and DynamoDB
 
-# #Ansible — Implementing SSH Key-based Authentication
-- name: Implement SSH Key Authentication
-  hosts: all
-  become: yes
+
+# #Ansible — Deploy Serverless Lambda Functions
+- name: Deploy Serverless Lambda Function
+  hosts: localhost
   tasks:
-    - name: Generate SSH key pair
-      command: ssh-keygen -t rsa -b 2048 -f /home/user/.ssh/id_rsa -N ""
-    - name: Add SSH public key to authorized_keys
-      authorized_key:
-        user: user
-        state: present
-        key: "{{ lookup('file', '/home/user/.ssh/id_rsa.pub') }}"
+    - name: Create Lambda function
+      command: aws lambda create-function --function-name pathnex-lambda --runtime nodejs14.x --role arn:aws:iam::123456789012:role/lambda-role --handler index.handler --zip-file fileb://lambda.zip
 
 
 
-
-# #Terraform — Enabling VPC Flow Logs for Security
-resource "aws_vpc_flow_log" "pathnex_flow_log" {
-  log_group_name = "pathnex-flow-logs"
-  vpc_id         = aws_vpc.pathnex_vpc.id
-  traffic_type   = "ALL"
-  log_destination_type = "cloud-watch-logs"
-}
-
-resource "aws_cloudwatch_log_group" "pathnex_flow_logs_group" {
-  name = "pathnex-flow-logs"
+# # Terraform — Create DynamoDB Table for Serverless Application
+resource "aws_dynamodb_table" "pathnex_table" {
+  name           = "pathnex-table"
+  hash_key       = "id"
+  billing_mode   = "PAY_PER_REQUEST"
+  attribute {
+    name = "id"
+    type = "S"
+  }
 }
 
 
 
-# #Kubernetes — Network Policies for Security
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
+# #Kubernetes — Deploy Serverless Using Kubeless
+apiVersion: kubeless.io/v1beta1
+kind: Function
 metadata:
-  name: pathnex-web-policy
+  name: pathnex-lambda
+  namespace: default
 spec:
-  podSelector:
-    matchLabels:
-      app: pathnex-web-app
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              app: pathnex-api
-  egress:
-    - to:
-        - podSelector:
-            matchLabels:
-              app: pathnex-database
+  runtime: nodejs14
+  handler: index.handler
+  function: |
+    module.exports = function(event, context) {
+      context.succeed('Hello World');
+    };
 
 
 
-# #Jenkinsfile — Secure the Pipeline with Secrets
+# # Jenkinsfile — Lambda Function Deployment Pipeline
 pipeline {
     agent any
-    environment {
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
-    }
     stages {
         stage('Build') {
             steps {
-                echo 'Building Docker image...'
-                docker.build('pathnex-web-app')
+                echo 'Building Lambda function package...'
+                sh 'zip -r lambda.zip lambda/'
             }
         }
-        stage('Deploy') {
+        stage('Deploy to Lambda') {
             steps {
-                echo 'Deploying to AWS EC2...'
-                sh 'aws ec2 run-instances --image-id ami-0abcd1234 --count 1 --instance-type t2.micro'
+                script {
+                    sh 'aws lambda update-function-code --function-name pathnex-lambda --zip-file fileb://lambda.zip'
+                }
             }
         }
     }
@@ -80,26 +61,12 @@ pipeline {
 
 
 
-# #GitLab CI/CD — Use GitLab Secrets for Secure Deployment
-stages:
-  - build
-  - deploy
-
-build:
-  stage: build
-  script:
-    - docker build -t pathnex-web-app .
-
-deploy:
-  stage: deploy
-  script:
-    - echo "Deploying with secure credentials"
-    - aws ec2 run-instances --image-id ami-0abcd1234 --count 1 --instance-type t2.micro --access-key $AWS_ACCESS_KEY --secret-key $AWS_SECRET_KEY
+# #Docker
+# Docker Exec & Resource Limits
+docker exec -it pathnex-nginx bash
+docker stats
 
 
 
-
-# # Docker
-# Docker Logs & Inspect
-docker logs pathnex-nginx
-docker inspect pathnex-nginx
+# # Bash
+docker run -d --memory="512m" --cpus="1.0" nginx
