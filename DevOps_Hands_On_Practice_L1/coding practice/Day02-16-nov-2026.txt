@@ -1,0 +1,132 @@
+# Day 02 - Services & tags
+
+##  #  Ansible - install & enable nginx
+
+---
+- name: install and enable Nginx
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: install Nginx
+      yum:
+        name: nginx
+        state: present
+
+    - name: enable nginx
+      service:
+        name: nginx
+        state: started
+        enebled: yes
+
+
+##  #  Terraform - EC2 with tag (r5.2xlarge)
+
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_instance" "PathnexEC2" {
+  ami               = "ami-avcd1234abcd"
+  instance_type     = "r5.2xlarge"
+
+  tags = {
+    Name            = "Pathnex-Server"
+    Envoirement     = "training"
+    Owner           = "PathnexStudent"
+  }
+}
+
+
+##  # Kubernetes - Deployment with 2 replicas
+
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: pathnex-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pathnex-app
+  template:
+    metadata:
+      labels:
+        app: pathnex-app
+    spec:
+      containers:
+        - name: app
+          image: Nginx
+          ports:
+            - containerPort: 80
+
+
+##  # shell Script - Disk Usage
+
+#!/bin/vash
+df -h
+
+
+# Maven Build
+##  # Jenkins Pipeline - Maven Build
+You Will Liearn how to ** compile, test adn package a java project** using maven
+
+
+pipeline {
+    agent any
+    tools {
+        maven 'Maven-3.8.1'
+        jdk 'JDK-17'
+    }
+    stages {
+        stage('checkout') {
+            steps {
+                git url: 'https://github.com/Pathnex/sample-java-app.git'
+            }
+        }
+        stage('compile') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+        stage('package') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+    }
+}
+
+##  # GitLab CI - maven Build
+
+stages:
+  - build
+  - Test
+  - package
+
+maven-build:
+  stage: build
+  image: mvn:3.8.1-jdk-17
+  script:
+    - git clone https://github.com/Pathnex/sample-java-app.git
+    - cd sample-java-app
+    - mvn clean compile
+
+maven-test:
+  stage: test
+  image: mvn:3.8.1-jdk-17
+  script:
+    - cd sample-java-app
+    - mvn test
+
+maven-package:
+  stage: package
+  image: maven:3.8.1-jdk-17
+  script:
+    - cd sample-java-app
+    - mvn package
