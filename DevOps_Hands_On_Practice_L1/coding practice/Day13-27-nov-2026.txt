@@ -1,0 +1,108 @@
+##  #  13 -     DEBUG DAY
+
+Fix the following broken files:
+
+##  # Ansible (Broken)
+
+---
+- name: "Broken"
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Install
+      yum:
+        name: nginx
+        state: present
+
+##  # Terraform (Broken)
+
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "~>6.0"
+    }
+  }
+}
+
+provider "aws" {
+ region = "ap-south-1"
+}
+
+resource "aws_instance" {
+  ami           = "ami-13dsf1sdff45a56"
+  instance_type = "c5.large"
+
+  tags  = {
+    Name = "broken"
+  }
+}
+
+##  # Kubernetes (Broken)
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broken
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: Broken
+  template:
+    metadata:
+      labels:
+        app: broken
+    spec:
+      containers:
+        - name: app
+          image: nginx
+
+##  # Matric Builds
+
+##  # Jenkins Pipeline - Matrix Build
+
+
+pipeline {
+    agent any
+    environment {
+        INSTITUTE_NAME  =   "Pathnex"
+    }
+    stages {
+        stage('Build') {
+            matrix {
+                axes {
+                    acis {
+                        name 'JAVA_VERSION'
+                        values '8', '11', '17'
+                    }
+                }
+                stages {
+                    stage('Compile') {
+                        steps {
+                            sh "echo Building with java ${JAVA_VERSION}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+##  # GitLab CI - matrix jobs
+you will learn how to **run jobs across multiple environment using matric**.
+
+stages:
+  - build
+
+build:
+  stage: build
+  image: maven:3.8.1-jdk-$JAVA_VERSION
+  parallel:
+    matrix:
+      - JAVA_VERSION: ['8','11','17']
+    script:
+      - echo "Building with java $JAVA_VERSION"
+      - mvn --version
+
